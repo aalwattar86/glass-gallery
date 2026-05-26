@@ -1,0 +1,1673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Glass Gallery</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07080a;
+      --bg-soft: #111317;
+      --glass: rgba(255, 255, 255, 0.075);
+      --glass-strong: rgba(255, 255, 255, 0.13);
+      --glass-border: rgba(255, 255, 255, 0.2);
+      --line: rgba(255, 255, 255, 0.12);
+      --text: rgba(255, 255, 255, 0.94);
+      --muted: rgba(255, 255, 255, 0.58);
+      --faint: rgba(255, 255, 255, 0.34);
+      --shadow: rgba(0, 0, 0, 0.42);
+      --accent: #9ed8ff;
+      --warm: #f0d7b0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      min-height: 100%;
+      background: var(--bg);
+    }
+
+    body {
+      min-height: 100vh;
+      overflow: hidden;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 20% 12%, rgba(158, 216, 255, 0.16), transparent 28%),
+        radial-gradient(circle at 86% 22%, rgba(240, 215, 176, 0.12), transparent 24%),
+        radial-gradient(circle at 48% 95%, rgba(255, 255, 255, 0.08), transparent 30%),
+        linear-gradient(145deg, #050607 0%, #101217 48%, #07080a 100%);
+      cursor: grab;
+    }
+
+    body:active {
+      cursor: grabbing;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .ambient,
+    .sheen,
+    .noise {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .ambient {
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+      background-size: 64px 64px;
+      mask-image: radial-gradient(circle at center, black, transparent 74%);
+      opacity: 0.34;
+    }
+
+    .sheen {
+      background:
+        linear-gradient(120deg, transparent 0 40%, rgba(255, 255, 255, 0.08) 49%, transparent 58%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 26%);
+      transform: translateX(-18%);
+      opacity: 0.5;
+    }
+
+    .noise {
+      opacity: 0.055;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.75'/%3E%3C/svg%3E");
+    }
+
+    .shell {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      padding: 22px;
+      gap: 18px;
+    }
+
+    .topbar,
+    .bottombar {
+      position: relative;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .mark {
+      width: 36px;
+      height: 36px;
+      border: 1px solid var(--glass-border);
+      border-radius: 999px;
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.045)),
+        radial-gradient(circle at 35% 25%, rgba(158, 216, 255, 0.5), transparent 38%);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 18px 50px rgba(0, 0, 0, 0.24);
+    }
+
+    h1 {
+      font-size: clamp(18px, 2vw, 24px);
+      font-weight: 500;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px;
+      border: 1px solid var(--glass-border);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.07);
+      backdrop-filter: blur(24px) saturate(145%);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 24px 70px rgba(0, 0, 0, 0.24);
+    }
+
+    .icon-btn {
+      position: relative;
+      display: inline-grid;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      border: 1px solid transparent;
+      border-radius: 999px;
+      color: var(--muted);
+      background: transparent;
+      cursor: pointer;
+      transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+    }
+
+    .icon-btn:hover,
+    .icon-btn.active {
+      color: var(--text);
+      border-color: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.11);
+    }
+
+    .icon-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .icon {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.7;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .tooltip {
+      position: absolute;
+      top: calc(100% + 10px);
+      left: 50%;
+      transform: translateX(-50%) translateY(-4px);
+      padding: 7px 9px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--text);
+      background: rgba(12, 14, 17, 0.86);
+      backdrop-filter: blur(20px);
+      font-size: 12px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.16s ease, transform 0.16s ease;
+    }
+
+    .icon-btn:hover .tooltip,
+    .icon-btn:focus-visible .tooltip {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .panel {
+      position: fixed;
+      top: 88px;
+      right: 22px;
+      z-index: 55;
+      width: min(380px, calc(100vw - 32px));
+      max-height: calc(100vh - 120px);
+      display: none;
+      overflow: auto;
+      padding: 14px;
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.055)),
+        rgba(10, 12, 15, 0.78);
+      backdrop-filter: blur(34px) saturate(145%);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 36px 110px rgba(0, 0, 0, 0.46);
+    }
+
+    .panel.open {
+      display: block;
+      animation: panelIn 0.22s ease both;
+    }
+
+    @keyframes panelIn {
+      from {
+        opacity: 0;
+        transform: translateY(-8px) scale(0.98);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 4px 2px 14px;
+    }
+
+    .panel-head h2 {
+      font-size: 16px;
+      font-weight: 520;
+      letter-spacing: 0;
+    }
+
+    .panel-form {
+      display: grid;
+      gap: 12px;
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+    }
+
+    .field label {
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .field input,
+    .field select,
+    .field textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.075);
+      outline: none;
+      padding: 0 12px;
+      font: inherit;
+      transition: border-color 0.18s ease, background 0.18s ease;
+    }
+
+    .field input,
+    .field select {
+      min-height: 42px;
+    }
+
+    .field textarea {
+      min-height: 96px;
+      padding: 11px 12px;
+      resize: vertical;
+      line-height: 1.45;
+    }
+
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus {
+      border-color: rgba(158, 216, 255, 0.48);
+      background: rgba(255, 255, 255, 0.11);
+    }
+
+    .field select option {
+      color: #111317;
+    }
+
+    .preview {
+      position: relative;
+      overflow: hidden;
+      min-height: 190px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.055);
+    }
+
+    .preview img {
+      display: block;
+      width: 100%;
+      height: 220px;
+      object-fit: cover;
+      opacity: 0.94;
+    }
+
+    .preview-state {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: 12px;
+      padding: 9px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.13);
+      border-radius: 999px;
+      color: rgba(255, 255, 255, 0.76);
+      background: rgba(5, 6, 8, 0.62);
+      backdrop-filter: blur(18px);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .panel-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .panel-actions .wide {
+      grid-column: 1 / -1;
+    }
+
+    .action-btn {
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.08);
+      cursor: pointer;
+      transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+    }
+
+    .action-btn:hover {
+      transform: translateY(-1px);
+      border-color: rgba(255, 255, 255, 0.24);
+      background: rgba(255, 255, 255, 0.13);
+    }
+
+    .action-btn.primary {
+      border-color: rgba(158, 216, 255, 0.34);
+      background: rgba(158, 216, 255, 0.16);
+    }
+
+    .status {
+      min-height: 18px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .stage {
+      position: relative;
+      z-index: 5;
+      display: grid;
+      min-height: 0;
+      place-items: center;
+      perspective: 2200px;
+      transform-style: preserve-3d;
+    }
+
+    .gallery {
+      position: relative;
+      width: min(22vw, 235px);
+      min-width: 190px;
+      height: min(50vh, 360px);
+      min-height: 300px;
+      transform-style: preserve-3d;
+      transition: transform 0.1s linear;
+    }
+
+    .gallery.wall,
+    .gallery.grid {
+      width: min(1160px, 92vw);
+      height: min(68vh, 660px);
+      min-height: 410px;
+      display: grid;
+      transform: none !important;
+      perspective: none;
+      transform-style: flat;
+      transition: none;
+    }
+
+    .gallery.wall {
+      grid-template-columns: repeat(6, minmax(110px, 1fr));
+      grid-auto-rows: 1fr;
+      align-items: stretch;
+      gap: 14px;
+    }
+
+    .gallery.grid {
+      grid-template-columns: repeat(4, minmax(150px, 1fr));
+      grid-auto-rows: 1fr;
+      gap: 18px;
+    }
+
+    .gallery.focus {
+      width: min(70vw, 820px);
+      height: min(66vh, 560px);
+      min-height: 420px;
+      transform-style: preserve-3d;
+    }
+
+    .art {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: flex-end;
+      overflow: hidden;
+      border: 1px solid var(--glass-border);
+      border-radius: 22px;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.065);
+      backdrop-filter: blur(24px) saturate(130%);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.18),
+        inset 0 -40px 80px rgba(255, 255, 255, 0.025),
+        0 32px 86px rgba(0, 0, 0, 0.36);
+      transform-style: preserve-3d;
+      cursor: pointer;
+      transition: opacity 0.28s ease, filter 0.28s ease, box-shadow 0.28s ease, transform 0.32s ease, border-color 0.28s ease;
+    }
+
+    .art:hover,
+    .art:focus-visible {
+      border-color: rgba(255, 255, 255, 0.36);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.26),
+        0 40px 110px rgba(0, 0, 0, 0.48);
+      filter: saturate(1.04) brightness(1.08);
+      outline: none;
+    }
+
+    .gallery.wall .art,
+    .gallery.grid .art,
+    .gallery.focus .art {
+      position: relative;
+      inset: auto;
+      transform: none !important;
+    }
+
+    .gallery.wall .art:nth-child(4n + 1) {
+      grid-row: span 2;
+    }
+
+    .gallery.wall .art:nth-child(6n + 3) {
+      grid-column: span 2;
+    }
+
+    .gallery.grid .art {
+      min-height: 0;
+    }
+
+    .gallery.focus .art {
+      position: absolute;
+      width: 54%;
+      height: 88%;
+      top: 6%;
+      left: 23%;
+      opacity: 0;
+      pointer-events: none;
+      transform-style: preserve-3d;
+    }
+
+    .gallery.focus .art.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateZ(110px) scale(1) !important;
+      z-index: 5;
+    }
+
+    .gallery.focus .art.prev {
+      opacity: 0.42;
+      pointer-events: auto;
+      transform: translateX(-64%) translateZ(-120px) rotateY(16deg) scale(0.78) !important;
+      z-index: 2;
+    }
+
+    .gallery.focus .art.next {
+      opacity: 0.42;
+      pointer-events: auto;
+      transform: translateX(64%) translateZ(-120px) rotateY(-16deg) scale(0.78) !important;
+      z-index: 2;
+    }
+
+    .art img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.86;
+      transform: scale(1.025);
+      transition: opacity 0.28s ease, transform 0.28s ease;
+    }
+
+    .art:hover img,
+    .art:focus-visible img {
+      opacity: 0.96;
+      transform: scale(1.045);
+    }
+
+    .art::before,
+    .art::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .art::before {
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.26), transparent 28%),
+        linear-gradient(to top, rgba(0, 0, 0, 0.72), transparent 58%);
+      opacity: 0.68;
+    }
+
+    .art::after {
+      border-radius: inherit;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), inset 0 0 80px rgba(255, 255, 255, 0.04);
+    }
+
+    .caption {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      display: grid;
+      gap: 6px;
+      padding: 18px;
+      text-align: left;
+    }
+
+    .caption small {
+      color: rgba(255, 255, 255, 0.62);
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .caption span {
+      max-width: 16ch;
+      font-size: clamp(16px, 1.6vw, 22px);
+      line-height: 1.04;
+      font-weight: 520;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+
+    .bottombar {
+      align-items: end;
+    }
+
+    .counter {
+      min-width: 118px;
+      padding: 12px 16px;
+      border: 1px solid var(--glass-border);
+      border-radius: 999px;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.065);
+      backdrop-filter: blur(22px);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 22px 60px rgba(0, 0, 0, 0.24);
+      font-size: 13px;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .progress {
+      width: min(44vw, 360px);
+      height: 2px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.16);
+    }
+
+    .progress span {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent), var(--warm));
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.24s ease;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      display: none;
+      place-items: center;
+      padding: 24px;
+      background: rgba(5, 6, 8, 0.48);
+      backdrop-filter: blur(26px) saturate(140%);
+    }
+
+    .modal.open {
+      display: grid;
+    }
+
+    .detail-card {
+      position: relative;
+      width: min(94vw, 980px);
+      display: grid;
+      grid-template-columns: minmax(0, 1.18fr) minmax(280px, 0.82fr);
+      gap: 20px;
+      padding: 14px;
+      border: 1px solid var(--glass-border);
+      border-radius: 28px;
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.055)),
+        rgba(12, 14, 17, 0.68);
+      backdrop-filter: blur(34px) saturate(145%);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 44px 130px rgba(0, 0, 0, 0.58);
+      animation: cardIn 0.28s ease both;
+    }
+
+    @keyframes cardIn {
+      from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.975);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .detail-media {
+      position: relative;
+      overflow: hidden;
+      min-height: 520px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .detail-media img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .detail-content {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 18px;
+      padding: 28px 22px 28px 8px;
+    }
+
+    .detail-content small {
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .detail-content h2 {
+      font-size: clamp(34px, 5.4vw, 72px);
+      line-height: 0.92;
+      font-weight: 480;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+
+    .detail-content p {
+      max-width: 44ch;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 16px;
+      line-height: 1.75;
+    }
+
+    .detail-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .detail-tags span {
+      padding: 7px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.045);
+      font-size: 12px;
+    }
+
+    .close-btn {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      z-index: 70;
+      width: 44px;
+      height: 44px;
+      border: 1px solid var(--glass-border);
+      border-radius: 999px;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(20px);
+      cursor: pointer;
+      transition: transform 0.18s ease, background 0.18s ease;
+    }
+
+    .close-btn:hover {
+      transform: translateY(-1px);
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (max-width: 900px) {
+      body {
+        overflow: auto;
+      }
+
+      .shell {
+        position: relative;
+        min-height: 100vh;
+        padding: 16px;
+        grid-template-rows: auto minmax(580px, 1fr) auto;
+      }
+
+      .topbar {
+        align-items: flex-start;
+      }
+
+      .brand {
+        align-items: flex-start;
+      }
+
+      .meta {
+        display: none;
+      }
+
+      .controls {
+        gap: 4px;
+        padding: 5px;
+      }
+
+      .panel {
+        top: 76px;
+        right: 16px;
+      }
+
+      .icon-btn {
+        width: 36px;
+        height: 36px;
+      }
+
+      .gallery {
+        width: 170px;
+        min-width: 170px;
+        height: 270px;
+        min-height: 270px;
+      }
+
+      .gallery.wall,
+      .gallery.grid {
+        width: 100%;
+        height: auto;
+        min-height: auto;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .gallery.wall .art,
+      .gallery.grid .art {
+        aspect-ratio: 0.78;
+      }
+
+      .gallery.wall .art:nth-child(n) {
+        grid-column: auto;
+        grid-row: auto;
+      }
+
+      .gallery.focus {
+        width: 100%;
+        height: 430px;
+        min-height: 430px;
+      }
+
+      .gallery.focus .art {
+        width: 70%;
+        height: 78%;
+        top: 9%;
+        left: 15%;
+      }
+
+      .gallery.focus .art.prev {
+        transform: translateX(-28%) translateZ(-130px) rotateY(10deg) scale(0.72) !important;
+      }
+
+      .gallery.focus .art.next {
+        transform: translateX(28%) translateZ(-130px) rotateY(-10deg) scale(0.72) !important;
+      }
+
+      .bottombar {
+        align-items: center;
+      }
+
+      .progress {
+        display: none;
+      }
+
+      .detail-card {
+        grid-template-columns: 1fr;
+        max-height: 88vh;
+        overflow: auto;
+      }
+
+      .detail-media {
+        min-height: 320px;
+      }
+
+      .detail-content {
+        padding: 8px 8px 18px;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .shell {
+        padding: 12px;
+        grid-template-rows: auto minmax(520px, 1fr) auto;
+      }
+
+      .topbar {
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .controls {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .panel {
+        position: fixed;
+        top: auto;
+        right: 12px;
+        bottom: 12px;
+        left: 12px;
+        width: auto;
+        max-height: 72vh;
+      }
+
+      .gallery.wall,
+      .gallery.grid {
+        grid-template-columns: 1fr;
+      }
+
+      .caption {
+        padding: 15px;
+      }
+
+      .bottombar {
+        justify-content: center;
+      }
+
+      .counter {
+        min-width: 104px;
+      }
+
+      .close-btn {
+        top: 14px;
+        right: 14px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="ambient"></div>
+  <div class="sheen"></div>
+  <div class="noise"></div>
+
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand" aria-label="Glass Gallery">
+        <div class="mark" aria-hidden="true"></div>
+        <div>
+          <h1>Glass Gallery</h1>
+          <div class="meta" id="modeLabel">Orbit view</div>
+        </div>
+      </div>
+
+      <nav class="controls" aria-label="Gallery controls">
+        <button class="icon-btn active" id="orbitBtn" type="button" aria-label="Orbit view">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12c0-3.3 3.6-6 8-6s8 2.7 8 6-3.6 6-8 6-8-2.7-8-6Z"/><path d="M12 4v16"/><path d="M7.4 7.4c1.2.8 2.8 1.2 4.6 1.2s3.4-.4 4.6-1.2"/><path d="M7.4 16.6c1.2-.8 2.8-1.2 4.6-1.2s3.4.4 4.6 1.2"/></svg>
+          <span class="tooltip">Orbit</span>
+        </button>
+        <button class="icon-btn" id="wallBtn" type="button" aria-label="Wall view">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v7H4z"/><path d="M14 4h6v4h-6z"/><path d="M14 12h6v8h-6z"/><path d="M4 15h6v5H4z"/></svg>
+          <span class="tooltip">Wall</span>
+        </button>
+        <button class="icon-btn" id="gridBtn" type="button" aria-label="Grid view">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v6H4z"/><path d="M14 4h6v6h-6z"/><path d="M4 14h6v6H4z"/><path d="M14 14h6v6h-6z"/></svg>
+          <span class="tooltip">Grid</span>
+        </button>
+        <button class="icon-btn" id="focusBtn" type="button" aria-label="Focus view">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10l3 4v12H4V8z"/><path d="M8 4v5h8V4"/><path d="M8 15h8"/></svg>
+          <span class="tooltip">Focus</span>
+        </button>
+        <button class="icon-btn active" id="autoBtn" type="button" aria-label="Toggle auto rotation">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12a7 7 0 0 1 12-4.9"/><path d="M17 3v4h-4"/><path d="M19 12a7 7 0 0 1-12 4.9"/><path d="M7 21v-4h4"/></svg>
+          <span class="tooltip">Motion</span>
+        </button>
+        <button class="icon-btn" id="panelBtn" type="button" aria-label="Open image controls">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          <span class="tooltip">Edit</span>
+        </button>
+      </nav>
+    </header>
+
+    <main class="stage" aria-label="Interactive glass art gallery">
+      <section class="gallery" id="gallery"></section>
+    </main>
+
+    <footer class="bottombar">
+      <div class="counter" id="counter">01 / 14</div>
+      <div class="progress" aria-hidden="true"><span id="progressBar"></span></div>
+      <div class="counter" id="collectionLabel">Abstract set</div>
+    </footer>
+  </div>
+
+  <aside class="panel" id="controlPanel" aria-hidden="true" aria-label="Image control panel">
+    <div class="panel-head">
+      <h2>Image Controls</h2>
+      <button class="icon-btn" id="panelCloseBtn" type="button" aria-label="Close image controls">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"/><path d="M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="panel-form">
+      <div class="field">
+        <label for="artSelect">Artwork</label>
+        <select id="artSelect"></select>
+      </div>
+      <div class="field">
+        <label for="imageUrlInput">Unsplash link</label>
+        <input id="imageUrlInput" type="url" inputmode="url" placeholder="https://images.unsplash.com/..." autocomplete="off" />
+      </div>
+      <div class="field">
+        <label for="titleInput">Title</label>
+        <input id="titleInput" type="text" maxlength="32" placeholder="Artwork title" />
+      </div>
+      <div class="field">
+        <label for="collectionInput">Collection</label>
+        <input id="collectionInput" type="text" maxlength="24" placeholder="Abstract" />
+      </div>
+      <div class="field">
+        <label for="descriptionInput">Description</label>
+        <textarea id="descriptionInput" maxlength="180" placeholder="Brief artwork description"></textarea>
+      </div>
+      <div class="preview">
+        <img id="panelPreview" alt="Selected replacement preview" />
+        <div class="preview-state" id="panelStatus">Ready</div>
+      </div>
+      <div class="panel-actions">
+        <button class="action-btn primary" id="applyImageBtn" type="button">Apply</button>
+        <button class="action-btn" id="resetSlotBtn" type="button">Reset Slot</button>
+        <button class="action-btn wide" id="resetAllBtn" type="button">Reset All</button>
+      </div>
+      <div class="status" id="saveStatus" role="status" aria-live="polite"></div>
+    </div>
+  </aside>
+
+  <div class="modal" id="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <button class="close-btn" id="closeBtn" type="button" aria-label="Close details">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"/><path d="M18 6L6 18"/></svg>
+    </button>
+    <article class="detail-card">
+      <div class="detail-media">
+        <img id="modalImg" alt="Selected artwork" />
+      </div>
+      <div class="detail-content">
+        <small id="modalKicker">Selected work</small>
+        <h2 id="modalTitle"></h2>
+        <p id="modalDesc"></p>
+        <div class="detail-tags" id="modalTags"></div>
+      </div>
+    </article>
+  </div>
+
+  <script>
+    const artworks = [
+      {
+        title: "Museum Light",
+        collection: "Painted",
+        desc: "A gallery moment built around framed color, quiet wall space, and the soft gravity of painted work.",
+        tags: ["painting", "gallery", "quiet"],
+        img: "https://images.unsplash.com/photo-1547826039-bfc35e0f1ea8?auto=format&fit=crop&w=1200&q=86"
+      },
+      {
+        title: "Liquid Pearl",
+        collection: "Abstract",
+        desc: "Fluid paint movement with pearled highlights, soft contrast, and a refined gallery-card presence.",
+        tags: ["fluid", "paint", "pearl"],
+        img: "https://images.unsplash.com/photo-1558591710-4b4a1ae0f04d?auto=format&fit=crop&w=1200&q=86"
+      },
+      {
+        title: "Color Field",
+        collection: "Painted",
+        desc: "Broad pigment, soft collision, and expressive surface texture arranged with a restrained modern eye.",
+        tags: ["paint", "color", "surface"],
+        img: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?auto=format&fit=crop&w=1200&q=86"
+      },
+      {
+        title: "Ink Current",
+        collection: "Abstract",
+        desc: "A saturated ink-like surface with directional movement, deep color, and a polished modern-art mood.",
+        tags: ["ink", "current", "color"],
+        img: "https://images.unsplash.com/photo-1557672172-298e090bd0f1?auto=format&fit=crop&w=1200&q=86"
+      },
+      {
+        title: "Red Room",
+        collection: "Painted",
+        desc: "Warm painted intensity, museum atmosphere, and a rich tonal field bring a more classic art-world rhythm.",
+        tags: ["painting", "warm", "museum"],
+        img: "https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?auto=format&fit=crop&w=1200&q=86"
+      },
+      {
+        title: "Paper Garden",
+        collection: "Abstract",
+        desc: "Colorful painted lines and organic shapes create a lively paper study with a collected-art feel.",
+        tags: ["paper", "lines", "garden"],
+        img: "https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=1200&q=86"
+      },
+      {
+        title: "Oil Study",
+        collection: "Painted",
+        desc: "Painterly color and material texture create a tactile composition that feels collected, not decorative.",
+        tags: ["oil", "texture", "canvas"],
+        img: "https://images.unsplash.com/photo-1579783901586-d88db74b4fe4?auto=format&fit=crop&w=1200&q=86"
+      },
+      {
+        title: "Pastel Static",
+        collection: "Abstract",
+        desc: "Pastel color breaks into a soft atmospheric field, balancing movement with a quiet museum tone.",
+        tags: ["pastel", "field", "soft"],
+        img: "https://images.unsplash.com/photo-1561214115-f2f134cc4912?auto=format&fit=crop&w=1200&q=86"
+      },
+      {
+        title: "Gallery Wall",
+        collection: "Painted",
+        desc: "A quiet installation view with clean spacing, warm gallery light, and multiple works in conversation.",
+        tags: ["gallery", "painting", "spacing"],
+        img: "https://images.unsplash.com/photo-1547891654-e66ed7ebb968?auto=format&fit=crop&w=1200&q=86"
+      },
+      {
+        title: "Muted Canvas",
+        collection: "Abstract",
+        desc: "A subtle painted surface with softened edges, restrained color, and a calm minimalist rhythm.",
+        tags: ["canvas", "muted", "minimal"],
+        img: "https://images.unsplash.com/photo-1552083974-186346191183?auto=format&fit=crop&w=1200&q=86"
+      },
+      {
+        title: "Pigment Window",
+        collection: "Painted",
+        desc: "A saturated abstract panel with enough tonal structure to read beautifully through frosted glass UI.",
+        tags: ["abstract", "pigment", "panel"],
+        img: "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?auto=format&fit=crop&w=1200&q=86"
+      },
+      {
+        title: "Violet Layer",
+        collection: "Abstract",
+        desc: "Layered violet and blue paint forms a rich abstract plane with a cool, premium gallery finish.",
+        tags: ["violet", "layer", "paint"],
+        img: "https://images.unsplash.com/photo-1500462918059-b1a0cb512f1d?auto=format&fit=crop&w=1200&q=86"
+      },
+      {
+        title: "Canvas Detail",
+        collection: "Painted",
+        desc: "Close texture and confident color make the piece feel tactile while keeping the composition minimal.",
+        tags: ["canvas", "detail", "paint"],
+        img: "https://images.unsplash.com/photo-1578926288207-a90a5366759d?auto=format&fit=crop&w=1200&q=86"
+      },
+      {
+        title: "Glass Pigment",
+        collection: "Abstract",
+        desc: "A glossy pigment study with luminous color and a smooth visual temperature that fits the glass UI.",
+        tags: ["gloss", "pigment", "glass"],
+        img: "https://images.unsplash.com/photo-1618005198919-d3d4b5a92ead?auto=format&fit=crop&w=1200&q=86"
+      }
+    ];
+
+    const defaultArtworks = artworks.map((art) => ({ ...art, tags: [...art.tags] }));
+    const storageKey = "glass-gallery-artworks-v1";
+
+    const gallery = document.getElementById("gallery");
+    const modal = document.getElementById("modal");
+    const modalImg = document.getElementById("modalImg");
+    const modalKicker = document.getElementById("modalKicker");
+    const modalTitle = document.getElementById("modalTitle");
+    const modalDesc = document.getElementById("modalDesc");
+    const modalTags = document.getElementById("modalTags");
+    const closeBtn = document.getElementById("closeBtn");
+    const autoBtn = document.getElementById("autoBtn");
+    const counter = document.getElementById("counter");
+    const progressBar = document.getElementById("progressBar");
+    const modeLabel = document.getElementById("modeLabel");
+    const collectionLabel = document.getElementById("collectionLabel");
+    const controlPanel = document.getElementById("controlPanel");
+    const panelBtn = document.getElementById("panelBtn");
+    const panelCloseBtn = document.getElementById("panelCloseBtn");
+    const artSelect = document.getElementById("artSelect");
+    const imageUrlInput = document.getElementById("imageUrlInput");
+    const titleInput = document.getElementById("titleInput");
+    const collectionInput = document.getElementById("collectionInput");
+    const descriptionInput = document.getElementById("descriptionInput");
+    const panelPreview = document.getElementById("panelPreview");
+    const panelStatus = document.getElementById("panelStatus");
+    const saveStatus = document.getElementById("saveStatus");
+    const applyImageBtn = document.getElementById("applyImageBtn");
+    const resetSlotBtn = document.getElementById("resetSlotBtn");
+    const resetAllBtn = document.getElementById("resetAllBtn");
+    const viewButtons = {
+      orbit: document.getElementById("orbitBtn"),
+      wall: document.getElementById("wallBtn"),
+      grid: document.getElementById("gridBtn"),
+      focus: document.getElementById("focusBtn")
+    };
+
+    let rotationY = 0;
+    let rotationX = -7;
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+    let startRotationY = 0;
+    let startRotationX = 0;
+    let autoRotate = true;
+    let activeIndex = 0;
+    let currentView = "orbit";
+    let userEditedDetails = false;
+    let radius = getRadius();
+
+    function pad(value) {
+      return String(value).padStart(2, "0");
+    }
+
+    function getRadius() {
+      if (window.innerWidth < 560) return 520;
+      if (window.innerWidth < 900) return 640;
+      return Math.min(860, Math.max(700, window.innerWidth * 0.42));
+    }
+
+    function normalizeIndex(index) {
+      return (index + artworks.length) % artworks.length;
+    }
+
+    function normalizeImageUrl(value) {
+      const raw = value.trim();
+      if (!raw) return "";
+      try {
+        const url = new URL(raw);
+        const host = url.hostname.replace(/^www\./, "");
+        if (host === "images.unsplash.com") {
+          url.searchParams.set("auto", "format");
+          url.searchParams.set("fit", "crop");
+          url.searchParams.set("w", "1200");
+          url.searchParams.set("q", "86");
+          return url.toString();
+        }
+        if (host === "unsplash.com") {
+          const parts = url.pathname.split("/").filter(Boolean);
+          if (parts[0] === "s" && parts[1] === "photos" && parts[2]) {
+            return raw;
+          }
+          if (parts[0] === "search" && parts[1] === "photos" && parts[2]) {
+            return raw;
+          }
+          const photoIndex = parts.indexOf("photos");
+          const photoSlug = photoIndex >= 0 ? parts[photoIndex + 1] : parts[0];
+          const photoId = photoSlug ? photoSlug.split("-").pop() : "";
+          if (photoId) return `https://unsplash.com/photos/${photoId}/download?force=false&w=1200`;
+        }
+        return raw;
+      } catch (error) {
+        return raw;
+      }
+    }
+
+    function titleCase(value) {
+      return value
+        .replace(/[-_+]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .split(" ")
+        .filter(Boolean)
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(" ");
+    }
+
+    function getUrlSuggestion(value) {
+      const raw = value.trim();
+      if (!raw) return null;
+      try {
+        const url = new URL(raw);
+        const host = url.hostname.replace(/^www\./, "");
+        const parts = url.pathname.split("/").filter(Boolean);
+        if (host === "unsplash.com" && parts[0] === "s" && parts[1] === "photos" && parts[2]) {
+          const subject = titleCase(decodeURIComponent(parts[2]));
+          return {
+            title: `${subject} Study`,
+            collection: subject,
+            desc: `A curated ${subject.toLowerCase()} artwork sourced from an Unsplash search, ready to refine for this gallery.`
+          };
+        }
+        if (host === "unsplash.com" && parts[0] === "search" && parts[1] === "photos" && parts[2]) {
+          const subject = titleCase(decodeURIComponent(parts[2]));
+          return {
+            title: `${subject} Study`,
+            collection: subject,
+            desc: `A curated ${subject.toLowerCase()} artwork sourced from an Unsplash search, ready to refine for this gallery.`
+          };
+        }
+        if (host === "unsplash.com") {
+          const photoIndex = parts.indexOf("photos");
+          const photoSlug = photoIndex >= 0 ? parts[photoIndex + 1] : "";
+          if (photoSlug) {
+            const words = photoSlug.split("-").slice(0, -1).join("-");
+            const title = titleCase(words || "Unsplash Artwork");
+            return {
+              title,
+              collection: "Unsplash",
+              desc: `${title} is a custom artwork suggested from the Unsplash photo link and can be edited before saving.`
+            };
+          }
+        }
+      } catch (error) {
+        return null;
+      }
+      return {
+        title: "Custom Artwork",
+        collection: "Unsplash",
+        desc: "A custom artwork added from an external image link and ready for a final gallery caption."
+      };
+    }
+
+    function applySuggestedDetails() {
+      if (userEditedDetails) return;
+      const suggestion = getUrlSuggestion(imageUrlInput.value);
+      if (!suggestion) return;
+      titleInput.value = suggestion.title;
+      collectionInput.value = suggestion.collection;
+      descriptionInput.value = suggestion.desc;
+    }
+
+    function loadSavedArtworks() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(storageKey) || "[]");
+        saved.forEach((savedArt, index) => {
+          if (!artworks[index] || !savedArt) return;
+          artworks[index] = {
+            ...artworks[index],
+            ...savedArt,
+            tags: Array.isArray(savedArt.tags) ? savedArt.tags : artworks[index].tags
+          };
+        });
+      } catch (error) {
+        localStorage.removeItem(storageKey);
+      }
+    }
+
+    function saveArtworks() {
+      const overrides = artworks.map((art, index) => {
+        const original = defaultArtworks[index];
+        return {
+          title: art.title,
+          collection: art.collection,
+          desc: art.desc,
+          tags: art.tags,
+          img: art.img,
+          changed: art.title !== original.title || art.collection !== original.collection || art.img !== original.img
+        };
+      });
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(overrides));
+      } catch (error) {
+        setPanelStatus("Saved for this session only.");
+      }
+    }
+
+    function setPanelStatus(message) {
+      saveStatus.textContent = message;
+      window.clearTimeout(setPanelStatus.timer);
+      setPanelStatus.timer = window.setTimeout(() => {
+        saveStatus.textContent = "";
+      }, 3200);
+    }
+
+    function populatePanelOptions() {
+      artSelect.innerHTML = artworks.map((art, index) => (
+        `<option value="${index}">${pad(index + 1)} - ${art.title}</option>`
+      )).join("");
+      artSelect.value = String(activeIndex);
+    }
+
+    function updatePanelFields() {
+      const art = artworks[Number(artSelect.value) || 0];
+      userEditedDetails = false;
+      imageUrlInput.value = art.img;
+      titleInput.value = art.title;
+      collectionInput.value = art.collection;
+      descriptionInput.value = art.desc;
+      updatePanelPreview();
+    }
+
+    function updatePanelPreview() {
+      const resolvedUrl = normalizeImageUrl(imageUrlInput.value);
+      applySuggestedDetails();
+      panelStatus.textContent = resolvedUrl ? "Loading preview" : "Ready";
+      panelPreview.removeAttribute("src");
+      if (resolvedUrl) panelPreview.src = resolvedUrl;
+    }
+
+    function setPanelOpen(isOpen) {
+      controlPanel.classList.toggle("open", isOpen);
+      controlPanel.setAttribute("aria-hidden", String(!isOpen));
+      panelBtn.classList.toggle("active", isOpen);
+      if (isOpen) {
+        artSelect.value = String(activeIndex);
+        updatePanelFields();
+      }
+    }
+
+    function applyPanelImage() {
+      const index = Number(artSelect.value) || 0;
+      const resolvedUrl = normalizeImageUrl(imageUrlInput.value);
+      if (!resolvedUrl) {
+        setPanelStatus("Add an Unsplash image link first.");
+        return;
+      }
+
+      const title = titleInput.value.trim() || artworks[index].title;
+      const collection = collectionInput.value.trim() || "Abstract";
+      artworks[index] = {
+        ...artworks[index],
+        title,
+        collection,
+        desc: descriptionInput.value.trim() || `${title} is a custom gallery image added from Unsplash through the control panel.`,
+        tags: [collection.toLowerCase(), "custom", "unsplash"],
+        img: resolvedUrl
+      };
+      activeIndex = index;
+      saveArtworks();
+      buildGallery();
+      populatePanelOptions();
+      artSelect.value = String(index);
+      updatePanelFields();
+      setPanelStatus("Image replaced and saved.");
+    }
+
+    function resetPanelSlot() {
+      const index = Number(artSelect.value) || 0;
+      artworks[index] = { ...defaultArtworks[index], tags: [...defaultArtworks[index].tags] };
+      activeIndex = index;
+      saveArtworks();
+      buildGallery();
+      populatePanelOptions();
+      artSelect.value = String(index);
+      updatePanelFields();
+      setPanelStatus("Artwork reset.");
+    }
+
+    function resetAllArtworks() {
+      defaultArtworks.forEach((art, index) => {
+        artworks[index] = { ...art, tags: [...art.tags] };
+      });
+      localStorage.removeItem(storageKey);
+      activeIndex = 0;
+      buildGallery();
+      populatePanelOptions();
+      updatePanelFields();
+      setPanelStatus("Gallery reset.");
+    }
+
+    function buildGallery() {
+      gallery.innerHTML = "";
+      artworks.forEach((art, index) => {
+        const item = document.createElement("button");
+        item.className = "art";
+        item.type = "button";
+        item.dataset.index = index;
+        item.setAttribute("aria-label", `Open ${art.title}`);
+        item.innerHTML = `
+          <img src="${art.img}" alt="${art.title}" loading="${index < 4 ? "eager" : "lazy"}" />
+          <span class="caption">
+            <small>${art.collection}</small>
+            <span>${art.title}</span>
+          </span>
+        `;
+        item.addEventListener("click", (event) => {
+          event.stopPropagation();
+          activeIndex = index;
+          updateState();
+          openModal(art);
+        });
+        gallery.appendChild(item);
+      });
+      populatePanelOptions();
+      applyView();
+      updateState();
+    }
+
+    function applyView() {
+      gallery.className = `gallery ${currentView === "orbit" ? "" : currentView}`.trim();
+      Object.entries(viewButtons).forEach(([view, button]) => {
+        button.classList.toggle("active", view === currentView);
+      });
+      modeLabel.textContent = `${currentView.charAt(0).toUpperCase()}${currentView.slice(1)} view`;
+      updateLayout();
+    }
+
+    function updateLayout() {
+      const items = [...gallery.children];
+      items.forEach((item, index) => {
+        item.classList.remove("active", "prev", "next");
+        if (currentView === "orbit") {
+          item.style.transform = `rotateY(${index * (360 / artworks.length)}deg) translateZ(${radius}px)`;
+          item.style.opacity = "1";
+        } else if (currentView === "focus") {
+          item.style.transform = "";
+          item.style.opacity = "";
+          if (index === activeIndex) item.classList.add("active");
+          if (index === normalizeIndex(activeIndex - 1)) item.classList.add("prev");
+          if (index === normalizeIndex(activeIndex + 1)) item.classList.add("next");
+        } else {
+          item.style.transform = "";
+          item.style.opacity = "";
+        }
+      });
+      updateGalleryTransform();
+    }
+
+    function updateGalleryTransform() {
+      if (currentView === "orbit") {
+        gallery.style.transform = `rotateX(${rotationX}deg) rotateY(${rotationY}deg)`;
+      } else {
+        gallery.style.transform = "";
+      }
+    }
+
+    function updateState() {
+      const activeArt = artworks[activeIndex];
+      counter.textContent = `${pad(activeIndex + 1)} / ${pad(artworks.length)}`;
+      collectionLabel.textContent = activeArt.collection;
+      progressBar.style.transform = `scaleX(${(activeIndex + 1) / artworks.length})`;
+      if (controlPanel.classList.contains("open") && document.activeElement !== imageUrlInput) {
+        artSelect.value = String(activeIndex);
+      }
+      updateLayout();
+    }
+
+    function openModal(art) {
+      modalImg.src = art.img;
+      modalImg.alt = art.title;
+      modalKicker.textContent = art.collection;
+      modalTitle.textContent = art.title;
+      modalDesc.textContent = art.desc;
+      modalTags.innerHTML = art.tags.map((tag) => `<span>${tag}</span>`).join("");
+      modal.classList.add("open");
+      modal.setAttribute("aria-hidden", "false");
+    }
+
+    function closeModal() {
+      modal.classList.remove("open");
+      modal.setAttribute("aria-hidden", "true");
+    }
+
+    function setView(view) {
+      currentView = view;
+      applyView();
+    }
+
+    function stepActive(direction) {
+      activeIndex = normalizeIndex(activeIndex + direction);
+      updateState();
+      if (currentView === "orbit") {
+        rotationY = -activeIndex * (360 / artworks.length);
+        updateGalleryTransform();
+      }
+    }
+
+    function animate() {
+      if (autoRotate && !isDragging && !modal.classList.contains("open") && currentView === "orbit") {
+        rotationY += 0.09;
+        const nearest = normalizeIndex(Math.round((-rotationY / (360 / artworks.length))));
+        activeIndex = nearest;
+        counter.textContent = `${pad(activeIndex + 1)} / ${pad(artworks.length)}`;
+        collectionLabel.textContent = artworks[activeIndex].collection;
+        progressBar.style.transform = `scaleX(${(activeIndex + 1) / artworks.length})`;
+        updateGalleryTransform();
+      }
+      requestAnimationFrame(animate);
+    }
+
+    function beginDrag(clientX, clientY) {
+      if (modal.classList.contains("open")) return;
+      isDragging = true;
+      startX = clientX;
+      startY = clientY;
+      startRotationY = rotationY;
+      startRotationX = rotationX;
+    }
+
+    function moveDrag(clientX, clientY) {
+      if (!isDragging) return;
+      const deltaX = clientX - startX;
+      const deltaY = clientY - startY;
+      if (currentView === "orbit") {
+        rotationY = startRotationY + deltaX * 0.3;
+        rotationX = Math.max(-24, Math.min(14, startRotationX - deltaY * 0.15));
+        activeIndex = normalizeIndex(Math.round((-rotationY / (360 / artworks.length))));
+        updateGalleryTransform();
+        updateState();
+      } else if (Math.abs(deltaX) > 80) {
+        stepActive(deltaX < 0 ? 1 : -1);
+        startX = clientX;
+      }
+    }
+
+    function endDrag() {
+      isDragging = false;
+    }
+
+    window.addEventListener("mousedown", (event) => {
+      if (event.target.closest(".panel, .controls, .modal")) return;
+      beginDrag(event.clientX, event.clientY);
+    });
+    window.addEventListener("mousemove", (event) => moveDrag(event.clientX, event.clientY));
+    window.addEventListener("mouseup", endDrag);
+
+    window.addEventListener("touchstart", (event) => {
+      if (event.target.closest(".panel, .controls, .modal")) return;
+      const touch = event.touches[0];
+      beginDrag(touch.clientX, touch.clientY);
+    }, { passive: true });
+
+    window.addEventListener("touchmove", (event) => {
+      const touch = event.touches[0];
+      moveDrag(touch.clientX, touch.clientY);
+    }, { passive: true });
+
+    window.addEventListener("touchend", endDrag);
+
+    Object.entries(viewButtons).forEach(([view, button]) => {
+      button.addEventListener("click", (event) => {
+        event.stopPropagation();
+        setView(view);
+      });
+    });
+
+    autoBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      autoRotate = !autoRotate;
+      autoBtn.classList.toggle("active", autoRotate);
+    });
+
+    panelBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      setPanelOpen(!controlPanel.classList.contains("open"));
+    });
+
+    panelCloseBtn.addEventListener("click", () => setPanelOpen(false));
+
+    artSelect.addEventListener("change", () => {
+      activeIndex = Number(artSelect.value) || 0;
+      if (currentView === "orbit") {
+        rotationY = -activeIndex * (360 / artworks.length);
+      }
+      updateState();
+      updatePanelFields();
+    });
+
+    imageUrlInput.addEventListener("input", updatePanelPreview);
+    [titleInput, collectionInput, descriptionInput].forEach((input) => {
+      input.addEventListener("input", () => {
+        userEditedDetails = true;
+      });
+    });
+    panelPreview.addEventListener("load", () => {
+      panelStatus.textContent = "Preview ready";
+    });
+    panelPreview.addEventListener("error", () => {
+      panelStatus.textContent = "Preview unavailable";
+    });
+    applyImageBtn.addEventListener("click", applyPanelImage);
+    resetSlotBtn.addEventListener("click", resetPanelSlot);
+    resetAllBtn.addEventListener("click", resetAllArtworks);
+
+    closeBtn.addEventListener("click", closeModal);
+    modal.addEventListener("click", (event) => {
+      if (event.target === modal) closeModal();
+    });
+
+    window.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        closeModal();
+        setPanelOpen(false);
+      }
+      if (event.key === "ArrowRight") stepActive(1);
+      if (event.key === "ArrowLeft") stepActive(-1);
+      if (event.key === "1") setView("orbit");
+      if (event.key === "2") setView("wall");
+      if (event.key === "3") setView("grid");
+      if (event.key === "4") setView("focus");
+    });
+
+    window.addEventListener("resize", () => {
+      radius = getRadius();
+      updateLayout();
+    });
+
+    loadSavedArtworks();
+    buildGallery();
+    updatePanelFields();
+    animate();
+  </script>
+</body>
+</html>
